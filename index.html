@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía paso a paso · Shape Arena (Lua + LÖVE)</title>
+<style>
+  :root{
+    --bg:#0e1424; --bg2:#0b1020; --panel:#141c30; --panel2:#182136; --line:#28324c;
+    --txt:#e7eef8; --muted:#93a2bd; --accent:#7c3aed; --accent2:#22d3ee; --ok:#35d6a4;
+    --k:#c792ea; --s:#c3e88d; --n:#f78c6c; --c:#5f7e97;
+    --side:288px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;line-height:1.6}
+  a{color:var(--accent2);text-decoration:none}
+  #bar{position:fixed;top:0;left:0;height:3px;width:0;z-index:50;
+    background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .1s}
+
+  /* layout */
+  .wrap{display:flex}
+  aside{width:var(--side);flex:0 0 var(--side);height:100vh;position:sticky;top:0;
+    background:linear-gradient(180deg,#101830,#0b1020);border-right:1px solid var(--line);
+    overflow-y:auto;padding:20px 14px}
+  aside .brand{font-weight:800;font-size:16px;letter-spacing:.02em;margin:4px 8px 4px}
+  aside .brand small{display:block;font-weight:600;color:var(--muted);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;margin-top:3px}
+  nav{margin-top:14px;display:flex;flex-direction:column;gap:2px}
+  nav a{color:#b9c6dc;padding:7px 10px;border-radius:9px;font-size:14px;display:flex;gap:9px;align-items:center;border-left:3px solid transparent}
+  nav a .ix{color:var(--muted);font-family:monospace;font-size:12px;min-width:20px}
+  nav a:hover{background:var(--panel)}
+  nav a.on{background:var(--panel2);border-left-color:var(--accent2);color:#fff}
+  nav .grp{color:var(--muted);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:12px 10px 4px}
+
+  main{flex:1 1 auto;min-width:0;max-width:900px;margin:0 auto;padding:40px 42px 120px}
+  section{padding-top:26px;margin-bottom:26px;border-top:1px solid transparent}
+  section:not(:first-child){border-top:1px solid var(--line);margin-top:34px}
+  h1{font-size:clamp(28px,4vw,44px);line-height:1.1;margin:.1em 0 .2em}
+  h2{font-size:clamp(23px,2.7vw,32px);margin:.2em 0 .3em;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  h2 .file{font-family:"JetBrains Mono",Consolas,monospace;font-size:.62em;color:var(--accent2);
+    background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.35);padding:2px 10px;border-radius:8px}
+  h3{font-size:clamp(17px,1.6vw,21px);margin:1.3em 0 .3em;color:#dfe8f5}
+  p,li{font-size:16px;color:#d4deee}
+  strong,b{color:#fff}
+  .grad{background:linear-gradient(90deg,var(--accent2),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:18.5px;color:#c9d5e8;max-width:66ch}
+  .muted{color:var(--muted)}
+  code:not(pre code){font-family:"JetBrains Mono",Consolas,monospace;font-size:.9em;
+    background:#1a2438;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:#e9d9ff}
+
+  .pill{display:inline-block;padding:3px 11px;border-radius:999px;font-size:12.5px;font-weight:700;
+    background:rgba(124,58,237,.18);border:1px solid rgba(124,58,237,.5);color:#d9c9ff}
+  .pill.cy{background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:#bdf1fb}
+  .pill.gr{background:rgba(53,214,164,.14);border-color:rgba(53,214,164,.5);color:#b6f0dd}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
+
+  pre{background:var(--bg2);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:12px;padding:14px 16px;overflow:auto;margin:.5em 0}
+  pre code{font-family:"JetBrains Mono","Fira Code",Consolas,monospace;font-size:13.5px;line-height:1.6;white-space:pre;color:#dbe6f5}
+  .k{color:var(--k)}.s{color:var(--s)}.n{color:var(--n)}.c{color:var(--c);font-style:italic}
+
+  /* steps */
+  .steps{counter-reset:step;margin:12px 0;display:flex;flex-direction:column;gap:14px}
+  .step{position:relative;padding:2px 0 2px 52px}
+  .step::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;
+    width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:#0b1020;background:linear-gradient(135deg,var(--accent2),var(--accent));font-size:15px}
+  .step h4{margin:4px 0 4px;font-size:16.5px;color:#fff}
+  .step p{margin:.25em 0;font-size:15.5px}
+
+  .note{border-left:3px solid var(--accent2);background:rgba(34,211,238,.07);padding:11px 15px;border-radius:0 10px 10px 0;margin:12px 0;font-size:15.5px;color:#cfe9f2}
+  .concept{border-left:3px solid var(--accent);background:rgba(124,58,237,.09);padding:11px 15px;border-radius:0 10px 10px 0;margin:12px 0;font-size:15.5px}
+  .concept b.tag,.note b.tag{display:inline-block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);margin-right:6px}
+  .concept b.tag{color:#c9b3ff}
+  .warn{border-left:3px solid var(--n);background:rgba(247,140,108,.08);padding:11px 15px;border-radius:0 10px 10px 0;margin:12px 0;font-size:15.5px}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:12px 0}
+  table{border-collapse:collapse;width:100%;margin:10px 0}
+  td,th{padding:8px 11px;border-bottom:1px solid var(--line);font-size:15px;text-align:left;vertical-align:top}
+  th{color:var(--accent2);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+  td:first-child{white-space:nowrap}
+  kbd{font-family:monospace;background:#1d2740;border:1px solid #33415f;border-bottom-width:2px;border-radius:6px;padding:1px 7px;font-size:.88em}
+  svg{max-width:100%;height:auto;display:block;margin:8px auto}
+  figure{margin:14px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+  figcaption{color:var(--muted);font-size:13.5px;text-align:center;margin-top:6px}
+
+  .toc-toggle{display:none}
+  @media(max-width:900px){
+    aside{position:fixed;z-index:40;transform:translateX(-100%);transition:transform .25s;box-shadow:0 0 40px #000a}
+    aside.open{transform:none}
+    .toc-toggle{display:flex;position:fixed;z-index:45;top:12px;left:12px;width:44px;height:40px;align-items:center;justify-content:center;
+      background:var(--panel);border:1px solid var(--line);border-radius:10px;color:#fff;font-size:20px;cursor:pointer}
+    main{padding:64px 20px 100px}
+  }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<button class="toc-toggle" id="tocToggle">☰</button>
+<div class="wrap">
+
+<aside id="side">
+  <div class="brand">Shape Arena<small>Guía paso a paso</small></div>
+  <nav id="nav">
+    <div class="grp">Antes de leer el código</div>
+    <a href="#inicio"><span class="ix">00</span>Cómo usar esta guía</a>
+    <a href="#panorama"><span class="ix">01</span>Panorama: el bucle</a>
+    <a href="#poo-lua"><span class="ix">02</span>POO en Lua desde cero</a>
+    <div class="grp">El motor y el contrato</div>
+    <a href="#class"><span class="ix">03</span>class.lua</a>
+    <a href="#shape"><span class="ix">04</span>shape.lua</a>
+    <div class="grp">Las figuras</div>
+    <a href="#circle"><span class="ix">05</span>circle.lua</a>
+    <a href="#rectangle"><span class="ix">06</span>rectangle.lua</a>
+    <a href="#triangle"><span class="ix">07</span>triangle.lua</a>
+    <div class="grp">Matemática y objetos</div>
+    <a href="#collide"><span class="ix">08</span>collide.lua</a>
+    <a href="#entity"><span class="ix">09</span>entity.lua</a>
+    <a href="#main"><span class="ix">10</span>main.lua</a>
+    <div class="grp">Para amarrar todo</div>
+    <a href="#trazas"><span class="ix">11</span>¿Qué pasa cuando…?</a>
+    <a href="#frame"><span class="ix">12</span>El frame completo</a>
+    <a href="#glosario"><span class="ix">13</span>Glosario</a>
+    <a href="#retos"><span class="ix">14</span>Retos</a>
+  </nav>
+</aside>
+
+<main>
+
+<!-- 00 -->
+<section id="inicio">
+  <div class="pill cy">CUN · Diseño y Desarrollo de Videojuegos</div>
+  <h1>Shape Arena, <span class="grad">explicado paso a paso</span></h1>
+  <p class="lead">Esta guía abre cada uno de los 8 scripts del proyecto y te explica <b>la lógica y el concepto de POO</b> que hay detrás de cada línea. No hace falta memorizar: la idea es que <b>entiendas por qué</b> cada pieza existe.</p>
+  <h3>Cómo leerla</h3>
+  <ul>
+    <li>Sigue el orden del menú de la izquierda: va de lo más básico a lo más completo.</li>
+    <li>Cada script tiene un bloque <b>“paso a paso”</b> numerado: lee el texto y mira el fragmento de código de al lado.</li>
+    <li>Ten el proyecto abierto en VSCode al lado para comparar con el archivo real.</li>
+  </ul>
+  <div class="note"><b class="tag">Meta</b>Al terminar deberías poder <b>agregar una figura nueva</b> (un pentágono) sin tocar <code>main.lua</code>. Ese es el examen de que entendiste POO.</div>
+</section>
+
+<!-- 01 -->
+<section id="panorama">
+  <h2>Panorama: cómo piensa un juego</h2>
+  <p>Antes de mirar clases, hay que entender el <b>bucle</b>. LÖVE llama a tres funciones tuyas:</p>
+  <figure>
+    <svg viewBox="0 0 620 150" role="img" aria-label="bucle de LÖVE">
+      <defs><marker id="a1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#22d3ee"/></marker></defs>
+      <g font-family="monospace" font-size="13" fill="#e7eef8" text-anchor="middle">
+        <rect x="20" y="55" width="130" height="44" rx="10" fill="#141c30" stroke="#35d6a4"/><text x="85" y="75">love.load()</text><text x="85" y="90" fill="#93a2bd" font-size="10.5">1 sola vez</text>
+        <rect x="240" y="55" width="140" height="44" rx="10" fill="#141c30" stroke="#22d3ee"/><text x="310" y="75">love.update(dt)</text><text x="310" y="90" fill="#93a2bd" font-size="10.5">mover / pensar</text>
+        <rect x="450" y="55" width="140" height="44" rx="10" fill="#141c30" stroke="#7c3aed"/><text x="520" y="75">love.draw()</text><text x="520" y="90" fill="#93a2bd" font-size="10.5">solo pintar</text>
+        <line x1="150" y1="77" x2="236" y2="77" stroke="#22d3ee" stroke-width="2" marker-end="url(#a1)"/>
+        <line x1="380" y1="77" x2="446" y2="77" stroke="#22d3ee" stroke-width="2" marker-end="url(#a1)"/>
+        <path d="M520,99 C520,135 310,135 310,101" fill="none" stroke="#405174" stroke-width="1.6" marker-end="url(#a1)"/>
+        <text x="415" y="132" fill="#93a2bd" font-size="11">~60 veces por segundo</text>
+      </g>
+    </svg>
+    <figcaption><code>load</code> prepara el mundo; luego <code>update</code>+<code>draw</code> se repiten cada frame.</figcaption>
+  </figure>
+  <div class="concept"><b class="tag">Concepto</b><b>dt</b> (delta time) es cuántos segundos pasaron desde el frame anterior. Multiplicar la velocidad por <code>dt</code> hace que el movimiento sea igual de rápido en cualquier PC.</div>
+
+  <h3>El mapa de archivos</h3>
+  <p>Cada archivo depende solo de los de “abajo”. Nadie de arriba conoce los detalles internos de los de abajo… salvo el <b>contrato</b> de <code>Shape</code>.</p>
+  <figure>
+    <svg viewBox="0 0 560 250" role="img" aria-label="dependencias">
+      <g font-family="monospace" font-size="12.5" fill="#e7eef8" text-anchor="middle">
+        <rect x="210" y="8" width="140" height="34" rx="9" fill="#101a33" stroke="#22d3ee"/><text x="280" y="30">main.lua</text>
+        <rect x="210" y="72" width="140" height="34" rx="9" fill="#141c30" stroke="#7c3aed"/><text x="280" y="94">entity.lua</text>
+        <rect x="30"  y="140" width="120" height="30" rx="8" fill="#141c30" stroke="#7c3aed"/><text x="90"  y="160">circle.lua</text>
+        <rect x="220" y="140" width="120" height="30" rx="8" fill="#141c30" stroke="#7c3aed"/><text x="280" y="160">rectangle.lua</text>
+        <rect x="410" y="140" width="120" height="30" rx="8" fill="#141c30" stroke="#7c3aed"/><text x="470" y="160">triangle.lua</text>
+        <rect x="150" y="208" width="120" height="32" rx="8" fill="#101a33" stroke="#22d3ee"/><text x="210" y="228">shape.lua</text>
+        <rect x="300" y="208" width="120" height="32" rx="8" fill="#101a33" stroke="#35d6a4"/><text x="360" y="228">collide.lua</text>
+        <g stroke="#405174" stroke-width="1.4" fill="none">
+          <line x1="280" y1="42" x2="280" y2="72"/>
+          <line x1="255" y1="106" x2="95"  y2="140"/><line x1="280" y1="106" x2="280" y2="140"/><line x1="305" y1="106" x2="465" y2="140"/>
+          <line x1="90"  y1="170" x2="195" y2="208"/><line x1="280" y1="170" x2="225" y2="208"/><line x1="470" y1="170" x2="230" y2="208"/>
+          <line x1="120" y1="170" x2="330" y2="208"/><line x1="300" y1="170" x2="350" y2="208"/><line x1="480" y1="170" x2="380" y2="208"/>
+        </g>
+      </g>
+    </svg>
+    <figcaption>Las flechas son <code>require</code>. <code>class.lua</code> (no dibujado) lo usan shape y entity para crear clases.</figcaption>
+  </figure>
+</section>
+
+<!-- 02 -->
+<section id="poo-lua">
+  <h2>POO en Lua desde cero</h2>
+  <p class="lead">Lua <b>no trae clases</b>. Se construyen con dos ingredientes: <b>tablas</b> y <b>metatablas</b>. Entiende esto y <code>class.lua</code> deja de ser magia.</p>
+
+  <div class="steps">
+    <div class="step">
+      <h4>Una tabla ya es casi un objeto</h4>
+      <p>Una tabla guarda datos con nombre. Eso es el “estado” de un objeto.</p>
+      <pre><code data-code="obj1"></code></pre>
+    </div>
+    <div class="step">
+      <h4><code>self</code> y los dos puntos <code>:</code></h4>
+      <p>Un método es una función que recibe al propio objeto. Escribir <code>obj:metodo(1)</code> es azúcar para <code>obj.metodo(obj, 1)</code>: los dos puntos pasan <code>obj</code> como <code>self</code>.</p>
+      <pre><code data-code="obj2"></code></pre>
+    </div>
+    <div class="step">
+      <h4><code>__index</code>: compartir métodos</h4>
+      <p>No queremos copiar los métodos en cada objeto. Con una <b>metatabla</b> decimos: “si no encuentras la clave aquí, búscala en la tabla <code>Jugador</code>”. Ahí viven los métodos comunes.</p>
+      <pre><code data-code="meta1"></code></pre>
+    </div>
+    <div class="step">
+      <h4>Herencia = encadenar otro <code>__index</code></h4>
+      <p>Si <code>Enemigo</code> no tiene un método, que lo busque en <code>Jugador</code>. Se logra poniéndole a <code>Enemigo</code> una metatabla que apunta a <code>Jugador</code>. Esa cadena <b>instancia → clase → padre</b> es toda la herencia.</p>
+      <pre><code data-code="meta2"></code></pre>
+    </div>
+  </div>
+  <div class="concept"><b class="tag">Idea clave</b>Todo el resto del proyecto es este patrón, empaquetado en <code>class.lua</code> para no repetirlo.</div>
+</section>
+
+<!-- 03 -->
+<section id="class">
+  <h2><span class="file">class.lua</span> El motor de clases</h2>
+  <div class="badges"><span class="pill">Herencia</span><span class="pill cy">Metatablas</span></div>
+  <p>Empaqueta el patrón anterior en una función <code>Class(padre)</code> que devuelve una clase lista para usar.</p>
+  <pre><code data-code="classFull"></code></pre>
+  <div class="steps">
+    <div class="step"><h4><code>cls.__index = cls</code></h4><p>La clase se declara como el lugar donde las <b>instancias</b> buscarán sus métodos.</p></div>
+    <div class="step"><h4>Metatabla con <code>__index = parent</code></h4><p>Si un método no está en la clase, se busca en el <b>padre</b>. Esto es la herencia (si <code>parent</code> es <code>nil</code>, no hay padre y punto).</p></div>
+    <div class="step"><h4><code>__call</code>: la clase se usa como función</h4><p>Gracias a esto podemos escribir <code>Circle(20)</code>. Lua ve el paréntesis, dispara <code>__call</code>, y ahí adentro nace la instancia.</p></div>
+    <div class="step"><h4>Se crea la instancia y corre <code>init</code></h4><p><code>setmetatable({}, self)</code> crea el objeto y lo enlaza a la clase; si la clase definió <code>init</code>, se ejecuta como “constructor”.</p></div>
+  </div>
+  <div class="note"><b class="tag">Traducción</b><code>local c = Circle(20)</code> ≈ “crea una tabla vacía, dile que su clase es Circle, y llama a <code>Circle.init(c, 20)</code>”.</div>
+</section>
+
+<!-- 04 -->
+<section id="shape">
+  <h2><span class="file">shape.lua</span> El contrato de toda figura</h2>
+  <div class="badges"><span class="pill">Abstracción</span></div>
+  <p>Una “figura” genérica no dibuja nada por sí sola: define <b>qué debe saber hacer</b> cualquier figura. Eso es la <b>abstracción</b>.</p>
+  <pre><code data-code="shapeFull"></code></pre>
+  <div class="steps">
+    <div class="step"><h4><code>Shape = Class()</code></h4><p>Clase base, sin padre. Es la raíz de la familia de figuras.</p></div>
+    <div class="step"><h4><code>init(kind)</code> guarda lo común</h4><p>Todas las figuras tienen un “tipo” (círculo, rectángulo…). Las subclases reusarán este init.</p></div>
+    <div class="step"><h4>Métodos “abstractos” que lanzan error</h4><p>Lua no tiene métodos abstractos de verdad, así que los <b>simulamos</b>: si alguien llama a <code>draw</code>/<code>contains</code>/<code>boundingRadius</code> sin haberlos implementado, revienta con un mensaje claro. Es el <b>contrato</b>.</p></div>
+    <div class="step"><h4><code>describe()</code>: método heredado</h4><p>Este sí tiene cuerpo. Toda figura lo hereda gratis y funciona porque llama a <code>self:boundingRadius()</code>, que cada figura sí implementa.</p></div>
+  </div>
+  <div class="concept"><b class="tag">Concepto</b>Abstracción = hablar del <b>qué</b> (“una figura se dibuja”) sin comprometerse con el <b>cómo</b> (que lo decide cada figura).</div>
+</section>
+
+<!-- 05 -->
+<section id="circle">
+  <h2><span class="file">circle.lua</span> La primera figura concreta</h2>
+  <div class="badges"><span class="pill">Herencia</span><span class="pill">Encapsulamiento</span><span class="pill">Polimorfismo</span></div>
+  <p>Aquí se ven tres pilares a la vez. Vamos por bloques.</p>
+  <div class="steps">
+    <div class="step"><h4>Hereda de Shape</h4><p><code>Class(Shape)</code> dice “Circle <b>es-un</b> Shape”. Recibe gratis <code>describe()</code> y la obligación del contrato.</p><pre><code data-code="circHead"></code></pre></div>
+    <div class="step"><h4>El constructor reusa al padre</h4><p><code>Shape.init(self, "circulo")</code> corre el init del padre (pone <code>self.kind</code>). Luego usamos el <b>setter</b> para poner el radio validado.</p><pre><code data-code="circInit"></code></pre></div>
+    <div class="step"><h4>Encapsulamiento: el radio se cuida</h4><p>El radio vive en <code>self._r</code> (el guion bajo grita “no me toques directo”). <code>setRadius</code> hace cumplir una <b>invariante</b>: nunca existe un radio ≤ 0.</p><pre><code data-code="circEncap"></code></pre></div>
+    <div class="step"><h4>Polimorfismo: <code>draw</code> a su manera</h4><p>Misma firma que en Shape, pero comportamiento de círculo. Dibuja centrado en <code>(x, y)</code> —esa posición se la pasa la Entity, no el círculo.</p><pre><code data-code="circDraw"></code></pre></div>
+    <div class="step"><h4><code>contains</code> delega la matemática</h4><p>En vez de repetir fórmulas, llama a <code>collide.pointInCircle</code>. Y <code>boundingRadius</code> del círculo es… su propio radio.</p><pre><code data-code="circContains"></code></pre></div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section id="rectangle">
+  <h2><span class="file">rectangle.lua</span> Rectángulo alineado (AABB)</h2>
+  <div class="badges"><span class="pill">Herencia</span><span class="pill">Polimorfismo</span></div>
+  <p>Un rectángulo <b>sin rotar</b> (lados paralelos a los ejes). Guarda ancho y alto; el centro lo pone quien lo dibuja.</p>
+  <div class="steps">
+    <div class="step"><h4>Invariante de tamaño</h4><p>Igual que el círculo: ancho y alto siempre positivos.</p><pre><code data-code="rectSize"></code></pre></div>
+    <div class="step"><h4>Dibujar desde el centro</h4><p>LÖVE dibuja el rectángulo desde su <b>esquina</b> superior-izquierda, pero nosotros pensamos en el <b>centro</b>. Por eso restamos la mitad del ancho y del alto.</p><pre><code data-code="rectDraw"></code></pre></div>
+    <div class="step"><h4><code>contains</code> por rango</h4><p>Un punto está dentro si cae en el rango horizontal <b>y</b> en el rango vertical a la vez. Se delega a <code>collide.pointInRect</code>.</p><pre><code data-code="rectContains"></code></pre></div>
+    <div class="step"><h4>Radio envolvente = media diagonal</h4><p>El círculo que envuelve al rectángulo pasa por sus esquinas. Su radio es <code>√((w/2)² + (h/2)²)</code> (Pitágoras).</p><pre><code data-code="rectBound"></code></pre>
+      <figure><svg viewBox="0 0 260 150" role="img" aria-label="diagonal del rectángulo">
+        <rect x="60" y="40" width="140" height="80" fill="#7c3aed" opacity=".22" stroke="#7c3aed"/>
+        <circle cx="130" cy="80" r="80.6" fill="none" stroke="#22d3ee" stroke-dasharray="4 4" opacity=".7"/>
+        <line x1="130" y1="80" x2="200" y2="40" stroke="#35d6a4" stroke-width="2"/>
+        <circle cx="130" cy="80" r="3" fill="#fff"/>
+        <text x="150" y="60" fill="#35d6a4" font-family="monospace" font-size="12">r</text>
+      </svg><figcaption>El radio llega hasta la esquina.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section id="triangle">
+  <h2><span class="file">triangle.lua</span> El primer polígono</h2>
+  <div class="badges"><span class="pill">Herencia</span><span class="pill">Polimorfismo</span></div>
+  <p>Aquí “dibujar” y “¿contiene el punto?” ya no son una fórmula de una línea. Aun así, <b>desde afuera se usa igual</b> que el círculo. Ese es el poder del polimorfismo.</p>
+  <div class="steps">
+    <div class="step"><h4>Calcular los 3 vértices locales</h4><p>Definimos el triángulo por un <code>size</code> (distancia del centro a cada vértice). Los vértices se guardan <b>relativos al centro</b> (0,0). Recuerda: en LÖVE la <b>Y crece hacia abajo</b>, así que “arriba” es Y negativa.</p><pre><code data-code="triSize"></code></pre>
+      <figure><svg viewBox="0 0 240 170" role="img" aria-label="vértices locales del triángulo">
+        <line x1="120" y1="20" x2="120" y2="150" stroke="#28324c"/><line x1="40" y1="95" x2="200" y2="95" stroke="#28324c"/>
+        <polygon points="120,35 185,135 55,135" fill="#f78c6c" opacity=".25" stroke="#f78c6c"/>
+        <circle cx="120" cy="35" r="3.5" fill="#fff"/><text x="126" y="34" fill="#e7eef8" font-family="monospace" font-size="11">(0,-s)</text>
+        <circle cx="55" cy="135" r="3.5" fill="#fff"/><text x="6" y="150" fill="#e7eef8" font-family="monospace" font-size="11">(-h,s/2)</text>
+        <circle cx="185" cy="135" r="3.5" fill="#fff"/><text x="150" y="150" fill="#e7eef8" font-family="monospace" font-size="11">(h,s/2)</text>
+        <circle cx="120" cy="95" r="3" fill="#22d3ee"/><text x="126" y="108" fill="#22d3ee" font-family="monospace" font-size="10">centro</text>
+      </svg></figure>
+    </div>
+    <div class="step"><h4>Trasladar al mundo</h4><p>Los vértices locales no sirven para dibujar hasta sumarles la posición real <code>(x, y)</code>. <code>worldVertices</code> devuelve la lista plana que <code>love.graphics.polygon</code> espera.</p><pre><code data-code="triWorld"></code></pre></div>
+    <div class="step"><h4>Dibujar el polígono</h4><pre><code data-code="triDraw"></code></pre></div>
+    <div class="step"><h4><code>contains</code> con el “test del signo”</h4><p>Pasamos los 3 vértices del mundo a <code>collide.pointInTriangle</code>. La idea: para cada arista, mirar de qué lado quedó el punto; si está del <b>mismo lado de las tres</b>, está dentro. Lo detallamos en collide.</p><pre><code data-code="triContains"></code></pre></div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section id="collide">
+  <h2><span class="file">collide.lua</span> Toda la matemática, en un solo lugar</h2>
+  <div class="badges"><span class="pill gr">Una responsabilidad</span></div>
+  <p>Un módulo de puras funciones, sin estado. Reunir aquí la matemática evita que las figuras repitan fórmulas. Se divide en <b>punto vs figura</b> (para el mouse) y <b>figura vs figura</b> (para los choques).</p>
+  <div class="concept"><b class="tag">Broad vs Narrow</b><b>Broad phase</b>: descarte barato con círculos envolventes (“¿ni se acercan? descarta”). <b>Narrow phase</b>: prueba exacta y más cara, solo para los que quizá chocan.</div>
+
+  <h3>Punto dentro del círculo</h3>
+  <p>Distancia del punto al centro vs radio. Comparamos <b>al cuadrado</b> para no calcular la raíz (más rápido y da igual el resultado).</p>
+  <pre><code data-code="colPC"></code></pre>
+
+  <h3>Punto dentro del rectángulo</h3>
+  <p>Cae dentro si está dentro del rango en X <b>y</b> en Y.</p>
+  <pre><code data-code="colPR"></code></pre>
+
+  <h3>Punto dentro del triángulo (test del signo)</h3>
+  <p>La función <code>lado(...)</code> es un <b>producto cruz</b>: dice de qué lado de una arista quedó el punto (positivo, negativo o cero = justo encima). Si los tres dan el mismo signo, el punto está dentro.</p>
+  <pre><code data-code="colPT"></code></pre>
+  <figure><svg viewBox="0 0 300 170" role="img" aria-label="test del signo">
+    <polygon points="150,25 250,140 50,140" fill="#f78c6c" opacity=".2" stroke="#f78c6c"/>
+    <circle cx="150" cy="105" r="4" fill="#35d6a4"/><text x="158" y="104" fill="#35d6a4" font-family="monospace" font-size="12">dentro: +,+,+</text>
+    <circle cx="235" cy="55" r="4" fill="#ff6b6b"/><text x="120" y="52" fill="#ff6b6b" font-family="monospace" font-size="12">fuera: mezcla de signos</text>
+  </svg></figure>
+
+  <h3>Círculo vs círculo</h3>
+  <p>La base del broad phase (y lo que ya hacía coin-hunt): distancia entre centros vs suma de radios.</p>
+  <pre><code data-code="colCC"></code></pre>
+
+  <h3>AABB vs AABB</h3>
+  <p>Dos rectángulos sin rotar chocan si se solapan en X <b>y</b> en Y. Se compara la distancia entre centros con la suma de las medias anchuras/alturas.</p>
+  <pre><code data-code="colAABB"></code></pre>
+
+  <h3>Círculo vs rectángulo</h3>
+  <p>Buscamos el <b>punto del rectángulo más cercano</b> al centro del círculo, recortando (<code>clamp</code>) las coordenadas al borde. Si ese punto cae dentro del círculo, chocan.</p>
+  <pre><code data-code="colCR"></code></pre>
+  <figure><svg viewBox="0 0 300 150" role="img" aria-label="clamp al borde">
+    <rect x="40" y="40" width="120" height="70" fill="#7c3aed" opacity=".25" stroke="#7c3aed"/>
+    <circle cx="215" cy="70" r="38" fill="#22d3ee" opacity=".22" stroke="#22d3ee"/>
+    <circle cx="160" cy="70" r="4" fill="#35d6a4"/><line x1="215" y1="70" x2="160" y2="70" stroke="#35d6a4" stroke-dasharray="4 3"/>
+    <text x="90" y="132" fill="#93a2bd" font-family="monospace" font-size="11">verde = punto más cercano (clamp)</text>
+  </svg></figure>
+</section>
+
+<!-- 09 -->
+<section id="entity">
+  <h2><span class="file">entity.lua</span> Objetos por composición</h2>
+  <div class="badges"><span class="pill cy">Composición</span><span class="pill">Polimorfismo</span></div>
+  <p>Una figura solo sabe de geometría. La <b>Entity</b> arma un objeto de juego <b>juntando piezas</b>: un Transform (dónde), una Shape (qué forma) y un color.</p>
+  <div class="steps">
+    <div class="step"><h4>El constructor junta las piezas</h4><p>Fíjate que la figura <b>llega desde afuera</b> (se “inyecta”). Para un enemigo triángulo no creamos una clase nueva: le pasamos un Triangle.</p><pre><code data-code="entInit"></code></pre></div>
+    <div class="step"><h4><code>update</code>: mover y rebotar en las paredes</h4><p>Mueve según la velocidad × <code>dt</code>. Para el rebote pide <code>boundingRadius()</code> a la figura —sin importar cuál sea— y, si se sale, la reubica y le invierte la velocidad en ese eje.</p><pre><code data-code="entUpdate"></code></pre></div>
+    <div class="step"><h4>Reenviar preguntas a la figura</h4><p><code>contains</code> le pregunta a su Shape. <code>overlaps</code> hace el <b>broad phase</b> con círculos envolventes. La Entity coordina; la figura sabe los detalles.</p><pre><code data-code="entOverlap"></code></pre></div>
+    <div class="step"><h4><code>draw</code> y la “línea mágica”</h4><p>Mezcla el color hacia el blanco según el destello del choque, y luego <code>self.shape:draw(...)</code>: <b>no sabemos ni nos importa</b> qué figura es. Si el mouse está encima, dibuja un anillo.</p><pre><code data-code="entDraw"></code></pre></div>
+  </div>
+  <div class="concept"><b class="tag">Composición &gt; Herencia</b>En vez de una súper-clase gigante, un objeto se construye juntando responsabilidades pequeñas e intercambiables. Es la idea de los <b>componentes</b> de Unity/Godot.</div>
+</section>
+
+<!-- 10 -->
+<section id="main">
+  <h2><span class="file">main.lua</span> El juego que une todo</h2>
+  <div class="badges"><span class="pill">Polimorfismo</span><span class="pill gr">Game loop</span></div>
+  <p>Lo importante: <code>main.lua</code> <b>no conoce los detalles</b> de cada figura. Solo habla con Entities a través de <code>update/draw/contains/overlaps</code>. Por eso agregar una figura no obliga a tocar este archivo.</p>
+
+  <h3>1) Estado y paleta</h3>
+  <p>Variables <code>local</code> del archivo: el tamaño de la arena, la lista de entidades, banderas de pausa/ayuda y los colores.</p>
+  <pre><code data-code="mainState"></code></pre>
+
+  <h3>2) La fábrica de entidades</h3>
+  <p>El <b>único</b> lugar que decide “qué figura construir”. Crea la Shape según el tipo, la envuelve en una Entity con color y velocidad al azar.</p>
+  <pre><code data-code="mainFactory"></code></pre>
+
+  <h3>3) Respuesta al choque: <code>resolver()</code></h3>
+  <p>Cuando dos entidades se solapan hacemos dos cosas: separarlas y rebotarlas a lo largo de la <b>normal</b> (la línea que une sus centros).</p>
+  <pre><code data-code="mainResolve"></code></pre>
+  <div class="steps">
+    <div class="step"><h4>Normal y distancia</h4><p><code>(nx, ny)</code> es la dirección de A hacia B, de longitud 1. El caso <code>dist == 0</code> (centros exactamente iguales) se blinda para no dividir por cero.</p></div>
+    <div class="step"><h4>Separar</h4><p>Empujamos cada una la mitad del solape en direcciones opuestas: dejan de encimarse.</p></div>
+    <div class="step"><h4>Rebotar solo si se acercan</h4><p>Proyectamos cada velocidad sobre la normal e intercambiamos esa parte (choque elástico, masas iguales). El <code>if diff &lt; 0</code> evita “pegarlas” cuando ya se están separando.</p></div>
+  </div>
+
+  <h3>4) <code>love.load</code>: crear el mundo</h3>
+  <pre><code data-code="mainLoad"></code></pre>
+
+  <h3>5) <code>love.update</code>: la parte que piensa</h3>
+  <p>Ocurre en tres etapas cada frame:</p>
+  <div class="steps">
+    <div class="step"><h4>Mover todo</h4><p>Cada entidad se actualiza (y rebota en paredes).</p><pre><code data-code="mainUpdateMove"></code></pre></div>
+    <div class="step"><h4>Chocar cada par una sola vez</h4><p>El truco del doble bucle con <code>j = i+1</code>: así el par (A,B) se revisa una vez, no dos. Si sus círculos envolventes se tocan, destello + <code>resolver</code>.</p><pre><code data-code="mainUpdatePairs"></code></pre></div>
+    <div class="step"><h4>Picking del mouse</h4><p>Reseteamos <code>hovered</code> y recorremos <b>de la última a la primera</b> (la última dibujada está “encima”). La primera que contenga al mouse se marca, y paramos.</p><pre><code data-code="mainUpdatePick"></code></pre></div>
+  </div>
+
+  <h3>6) <code>love.draw</code>: solo pintar</h3>
+  <p>Opcionalmente los círculos envolventes (tecla G), luego todas las figuras con un <b>único bucle</b> (polimorfismo), y encima el HUD.</p>
+  <pre><code data-code="mainDraw"></code></pre>
+
+  <h3>7) Entradas del usuario</h3>
+  <p>Teclado y mouse. Nota cómo borrar una figura vuelve a usar <code>:contains</code> (mismo método del picking).</p>
+  <pre><code data-code="mainInput"></code></pre>
+</section>
+
+<!-- 11 -->
+<section id="trazas">
+  <h2>¿Qué pasa cuando…?</h2>
+  <p>Seguir el flujo real ayuda a que las piezas encajen. Tres recorridos:</p>
+
+  <h3>…presionas la tecla <kbd>1</kbd></h3>
+  <div class="card"><p style="font-family:monospace;font-size:14px;line-height:2">
+    <span class="grad">love.keypressed("1")</span> → <code>spawn("circle", mx, my)</code> → <code>nuevaEntidad</code> →
+    <code>Circle(r)</code> <span class="muted">(dispara __call de class.lua)</span> → nace la instancia →
+    <code>Circle:init</code> → <code>Shape.init(self,"circulo")</code> + <code>setRadius(r)</code> →
+    la Entity queda con su figura y se agrega a <code>world</code>.
+  </p></div>
+
+  <h3>…dos figuras chocan</h3>
+  <div class="card"><p style="font-family:monospace;font-size:14px;line-height:2">
+    <code>love.update</code> → doble bucle → <code>a:overlaps(b)</code> <span class="muted">(círculos envolventes)</span> = true →
+    <code>a:flash(); b:flash()</code> <span class="muted">(destello)</span> → <code>resolver(a,b)</code>
+    <span class="muted">(las separa e invierte velocidades)</span> → el siguiente frame ya no se solapan.
+  </p></div>
+
+  <h3>…pasas el mouse por encima</h3>
+  <div class="card"><p style="font-family:monospace;font-size:14px;line-height:2">
+    cada frame: <code>hovered = false</code> en todas → recorrer de arriba a abajo →
+    <code>world[i]:contains(mx,my)</code> <span class="muted">(delega en la figura: círculo, rect o triángulo)</span> → la primera true se marca →
+    en <code>draw</code>, esa entidad dibuja su anillo blanco.
+  </p></div>
+  <div class="note"><b class="tag">Fíjate</b>Los tres recorridos cruzan varios archivos, pero cada uno hace <b>solo su parte</b>. Esa separación es el objetivo de todo el diseño.</div>
+</section>
+
+<!-- 12 -->
+<section id="frame">
+  <h2>El frame completo, de un vistazo</h2>
+  <p>60 veces por segundo, LÖVE hace esto:</p>
+  <table>
+    <tr><th>Orden</th><th>Qué ocurre</th><th>Dónde</th></tr>
+    <tr><td>1</td><td>Mover cada entidad y rebotar en las paredes</td><td><code>Entity:update</code></td></tr>
+    <tr><td>2</td><td>Revisar todos los pares; los que se tocan: destello + rebote</td><td><code>love.update</code> + <code>resolver</code></td></tr>
+    <tr><td>3</td><td>Marcar la figura bajo el mouse</td><td><code>:contains</code></td></tr>
+    <tr><td>4</td><td>(Opcional) pintar círculos envolventes</td><td><code>love.draw</code> · tecla G</td></tr>
+    <tr><td>5</td><td>Pintar todas las figuras (un solo bucle)</td><td><code>Entity:draw</code></td></tr>
+    <tr><td>6</td><td>Pintar el HUD (contadores, ayuda)</td><td><code>drawHUD</code></td></tr>
+  </table>
+  <p class="muted">Las teclas y clics (<code>keypressed</code>/<code>mousepressed</code>) ocurren cuando suceden, entremedio de los frames.</p>
+</section>
+
+<!-- 13 -->
+<section id="glosario">
+  <h2>Glosario rápido</h2>
+  <table>
+    <tr><td><b>tabla</b></td><td>La estructura de datos de Lua: pares clave = valor. Sirve de objeto, de lista y de diccionario.</td></tr>
+    <tr><td><b>metatabla</b></td><td>Una tabla que cambia el comportamiento de otra (p. ej. qué hacer cuando falta una clave).</td></tr>
+    <tr><td><b>__index</b></td><td>Regla de la metatabla: “si no encuentras la clave, búscala acá”. Base de métodos y herencia.</td></tr>
+    <tr><td><b>self</b></td><td>El propio objeto dentro de un método. Los dos puntos <code>:</code> lo pasan automáticamente.</td></tr>
+    <tr><td><b>dt</b></td><td>Segundos desde el frame anterior. Se multiplica por la velocidad para un movimiento estable.</td></tr>
+    <tr><td><b>invariante</b></td><td>Una condición que siempre debe cumplirse (radio &gt; 0). El encapsulamiento la protege.</td></tr>
+    <tr><td><b>override</b></td><td>Redefinir en la subclase un método del padre (Circle define su propio <code>draw</code>).</td></tr>
+    <tr><td><b>polimorfismo</b></td><td>Llamar al mismo método (<code>draw</code>) en objetos distintos y que cada uno responda a su manera.</td></tr>
+    <tr><td><b>broad / narrow phase</b></td><td>Descarte barato aproximado vs prueba exacta cara, en detección de colisiones.</td></tr>
+    <tr><td><b>AABB</b></td><td>Axis-Aligned Bounding Box: rectángulo sin rotar; su colisión es muy barata.</td></tr>
+    <tr><td><b>normal</b></td><td>Dirección perpendicular a la superficie de contacto; sobre ella se calcula el rebote.</td></tr>
+  </table>
+</section>
+
+<!-- 14 -->
+<section id="retos">
+  <h2>Retos para seguir</h2>
+  <div class="steps">
+    <div class="step"><h4>Agrega un Pentágono</h4><p>Crea <code>pentagon.lua</code> que herede de Shape (guarda 5 vértices locales, como el triángulo). Si logras usarlo <b>sin tocar main.lua</b>, tu diseño está bien.</p></div>
+    <div class="step"><h4>Activa la narrow phase</h4><p>Cuando dos círculos envolventes se toquen, confirma con la prueba exacta (<code>collide.aabbVsAabb</code> o <code>circleVsRect</code>) antes de rebotar.</p></div>
+    <div class="step"><h4>Dale masa a cada Entity</h4><p>Calcula la masa según el área y úsala en <code>resolver</code>: las figuras grandes empujan más.</p></div>
+    <div class="step"><h4>Lleva esto a coin-hunt</h4><p>Que el jugador y las monedas sean <code>Entity</code> con su <code>Shape</code>. Reusarás casi todo.</p></div>
+  </div>
+  <p class="muted" style="margin-top:24px">Fin de la guía · CUN · Diseño y Desarrollo de Videojuegos · Lua + LÖVE.</p>
+</section>
+
+</main>
+</div>
+
+<script>
+const CODE = {
+obj1:
+`-- una "tabla" es una colección de pares clave = valor
+local jugador = { x = 100, y = 50, vida = 3 }
+print(jugador.x)          --> 100
+jugador.vida = jugador.vida - 1   -- cambiamos su estado`,
+obj2:
+`local jugador = { x = 100, vida = 3 }
+
+-- una función con 'self' recibe al propio objeto
+function jugador.recibirDanio(self, n)
+    self.vida = self.vida - n
+end
+
+jugador.recibirDanio(jugador, 1)   -- forma explícita
+jugador:recibirDanio(1)            -- ':' pasa 'jugador' como self`,
+meta1:
+`-- Que MUCHOS jugadores compartan los mismos métodos:
+local Jugador = {}          -- aquí viven los métodos (la "clase")
+Jugador.__index = Jugador
+
+function Jugador.new(x)
+    local self = setmetatable({}, Jugador)  -- busca métodos en Jugador
+    self.x, self.vida = x, 3
+    return self
+end
+function Jugador:mover(dx) self.x = self.x + dx end
+
+local p = Jugador.new(0)
+p:mover(10)                 -- 'mover' se halla vía __index`,
+meta2:
+`-- Herencia: encadenamos un segundo __index hacia el padre.
+local Enemigo = setmetatable({}, { __index = Jugador }) -- Enemigo -> Jugador
+Enemigo.__index = Enemigo
+-- si un método no está en Enemigo, Lua lo busca en Jugador`,
+classFull:
+`local function Class(parent)
+    local cls = {}
+    cls.__index = cls          -- 1) instancia -> método en la clase
+    cls.super   = parent
+    setmetatable(cls, {
+        __index = parent,      -- 2) clase -> hereda del padre
+        __call = function(self, ...)      -- 3) Circle(10) llama a esto
+            local obj = setmetatable({}, self)
+            if obj.init then obj:init(...) end   -- 4) corre el constructor
+            return obj
+        end,
+    })
+    return cls
+end`,
+shapeFull:
+`local Shape = Class()
+
+function Shape:init(kind) self.kind = kind or "figura" end
+
+-- contrato: si no se implementa, error claro
+function Shape:draw(x, y)          error("draw() no implementado") end
+function Shape:contains(x,y,px,py) error("contains() no implementado") end
+function Shape:boundingRadius()    error("falta boundingRadius()") end
+
+-- método compartido (todas lo heredan)
+function Shape:describe()
+    return ("Figura '%s' (r=%.0f)"):format(self.kind, self:boundingRadius())
+end`,
+circHead:
+`local Circle = Class(Shape)          -- Circle ES-UN Shape (herencia)`,
+circInit:
+`function Circle:init(r)
+    Shape.init(self, "circulo")     -- reusa el init del padre
+    self:setRadius(r or 20)         -- valida el radio con el setter
+end`,
+circEncap:
+`function Circle:setRadius(r)
+    assert(type(r) == "number" and r > 0, "El radio debe ser > 0")
+    self._r = r                     -- '_' = privado por convención
+end
+function Circle:getRadius() return self._r end`,
+circDraw:
+`function Circle:draw(x, y)
+    love.graphics.circle("fill", x, y, self._r)   -- centro (x,y)
+    love.graphics.setColor(0, 0, 0, 0.25)
+    love.graphics.circle("line", x, y, self._r)   -- borde sutil
+end`,
+circContains:
+`function Circle:contains(x, y, px, py)
+    return collide.pointInCircle(px, py, x, y, self._r)   -- delega
+end
+function Circle:boundingRadius() return self._r end`,
+rectSize:
+`function Rectangle:setSize(w, h)
+    assert(w > 0 and h > 0, "ancho y alto deben ser > 0")
+    self._w, self._h = w, h
+end`,
+rectDraw:
+`function Rectangle:draw(x, y)
+    -- LÖVE dibuja desde la esquina; restamos la mitad para CENTRAR
+    local left, top = x - self._w/2, y - self._h/2
+    love.graphics.rectangle("fill", left, top, self._w, self._h)
+end`,
+rectContains:
+`function Rectangle:contains(x, y, px, py)
+    return collide.pointInRect(px, py, x, y, self._w, self._h)
+end`,
+rectBound:
+`function Rectangle:boundingRadius()
+    local hw, hh = self._w/2, self._h/2
+    return math.sqrt(hw*hw + hh*hh)     -- media diagonal (Pitágoras)
+end`,
+triSize:
+`function Triangle:setSize(size)
+    assert(size > 0, "el tamaño debe ser > 0")
+    self._size = size
+    local s = size
+    local h = s * math.sqrt(3) / 2      -- media base
+    self._verts = {                     -- vértices LOCALES (centro en 0,0)
+        {  0, -s   },                   -- arriba  (Y negativa = arriba)
+        { -h,  s/2 },                   -- abajo-izquierda
+        {  h,  s/2 },                   -- abajo-derecha
+    }
+end`,
+triWorld:
+`function Triangle:worldVertices(x, y)
+    local v = self._verts
+    return {                            -- suma (x,y) a cada vértice
+        x + v[1][1], y + v[1][2],
+        x + v[2][1], y + v[2][2],
+        x + v[3][1], y + v[3][2],
+    }
+end`,
+triDraw:
+`function Triangle:draw(x, y)
+    local pts = self:worldVertices(x, y)
+    love.graphics.polygon("fill", pts)
+end`,
+triContains:
+`function Triangle:contains(x, y, px, py)
+    local p = self:worldVertices(x, y)
+    return collide.pointInTriangle(px, py, p[1],p[2], p[3],p[4], p[5],p[6])
+end`,
+colPC:
+`function collide.pointInCircle(px, py, cx, cy, r)
+    local dx, dy = px - cx, py - cy
+    return dx*dx + dy*dy <= r*r      -- distancia² <= radio²
+end`,
+colPR:
+`function collide.pointInRect(px, py, cx, cy, w, h)
+    local hw, hh = w/2, h/2
+    return px >= cx-hw and px <= cx+hw
+       and py >= cy-hh and py <= cy+hh
+end`,
+colPT:
+`function collide.pointInTriangle(px, py, ax,ay, bx,by, cx,cy)
+    local function lado(x1,y1,x2,y2)
+        return (x2-x1)*(py-y1) - (y2-y1)*(px-x1)   -- producto cruz
+    end
+    local d1,d2,d3 = lado(ax,ay,bx,by), lado(bx,by,cx,cy), lado(cx,cy,ax,ay)
+    local neg = d1<0 or d2<0 or d3<0
+    local pos = d1>0 or d2>0 or d3>0
+    return not (neg and pos)         -- dentro = sin mezcla de signos
+end`,
+colCC:
+`function collide.circleVsCircle(x1,y1,r1, x2,y2,r2)
+    local dx, dy = x2-x1, y2-y1
+    local rs = r1 + r2
+    return dx*dx + dy*dy <= rs*rs
+end`,
+colAABB:
+`function collide.aabbVsAabb(x1,y1,w1,h1, x2,y2,w2,h2)
+    return math.abs(x1-x2) <= (w1+w2)/2   -- solapan en X
+       and math.abs(y1-y2) <= (h1+h2)/2   -- y en Y
+end`,
+colCR:
+`function collide.circleVsRect(cx,cy,r, rx,ry,rw,rh)
+    local hw, hh = rw/2, rh/2
+    local nx = math.max(rx-hw, math.min(cx, rx+hw))   -- clamp X
+    local ny = math.max(ry-hh, math.min(cy, ry+hh))   -- clamp Y
+    local dx, dy = cx-nx, cy-ny
+    return dx*dx + dy*dy <= r*r
+end`,
+entInit:
+`function Entity:init(x, y, shape, color)
+    self.x, self.y   = x, y          -- Transform: dónde está
+    self.vx, self.vy = 0, 0          -- ...y hacia dónde va
+    self.shape = shape               -- Shape: qué forma (intercambiable)
+    self.color = color or {0.4,0.7,1.0}
+    self.hovered = false
+    self._flash  = 0                 -- 0..1: brillo temporal al chocar
+end`,
+entUpdate:
+`function Entity:update(dt, W, H)
+    self.x = self.x + self.vx * dt   -- mover (dt = seg desde el frame previo)
+    self.y = self.y + self.vy * dt
+
+    local r = self.shape:boundingRadius()       -- rebote con paredes
+    if self.x - r < 0 then self.x = r;      self.vx =  math.abs(self.vx) end
+    if self.x + r > W then self.x = W - r;   self.vx = -math.abs(self.vx) end
+    if self.y - r < 0 then self.y = r;       self.vy =  math.abs(self.vy) end
+    if self.y + r > H then self.y = H - r;   self.vy = -math.abs(self.vy) end
+
+    if self._flash > 0 then self._flash = math.max(0, self._flash - dt*2.5) end
+end`,
+entOverlap:
+`function Entity:contains(px, py)
+    return self.shape:contains(self.x, self.y, px, py)   -- delega en la figura
+end
+
+function Entity:overlaps(other)                          -- broad phase
+    return collide.circleVsCircle(
+        self.x,  self.y,  self.shape:boundingRadius(),
+        other.x, other.y, other.shape:boundingRadius())
+end`,
+entDraw:
+`function Entity:draw()
+    local c, f = self.color, self._flash
+    love.graphics.setColor(                     -- mezcla hacia blanco al chocar
+        c[1]+(1-c[1])*f, c[2]+(1-c[2])*f, c[3]+(1-c[3])*f, 1)
+
+    self.shape:draw(self.x, self.y)             -- ★ polimorfismo: cada figura sabe
+
+    if self.hovered then                        -- anillo si el mouse está encima
+        love.graphics.setColor(1,1,1,0.9)
+        love.graphics.circle("line", self.x, self.y, self.shape:boundingRadius()+5)
+    end
+end`,
+mainState:
+`local W, H, world
+local paused, showBounds, showHelp = false, false, true
+local collisionCount = 0
+local fontBig, fontSmall
+
+local PALETTE = { {0.95,0.35,0.42}, {0.98,0.75,0.20}, {0.35,0.85,0.55},
+                  {0.35,0.70,0.98}, {0.75,0.55,0.98}, {0.98,0.55,0.80} }`,
+mainFactory:
+`local function nuevaEntidad(kind, x, y)
+    local shape
+    if     kind == "circle"    then shape = Circle(love.math.random(14,30))
+    elseif kind == "rectangle" then shape = Rectangle(love.math.random(30,70),
+                                                      love.math.random(24,50))
+    else                            shape = Triangle(love.math.random(18,34)) end
+
+    local e = Entity(x, y, shape, PALETTE[love.math.random(#PALETTE)])
+    local ang, speed = love.math.random()*2*math.pi, love.math.random(80,190)
+    e:setVelocity(math.cos(ang)*speed, math.sin(ang)*speed)
+    return e
+end`,
+mainResolve:
+`local function resolver(a, b)
+    local dx, dy = b.x-a.x, b.y-a.y
+    local dist   = math.sqrt(dx*dx + dy*dy)
+    if dist == 0 then dx, dy, dist = 1, 0, 1 end          -- evita dividir por 0
+
+    local overlap = (a.shape:boundingRadius() + b.shape:boundingRadius()) - dist
+    if overlap <= 0 then return end
+
+    local nx, ny = dx/dist, dy/dist                       -- normal a -> b
+    a.x, a.y = a.x - nx*overlap/2, a.y - ny*overlap/2     -- 1) separar
+    b.x, b.y = b.x + nx*overlap/2, b.y + ny*overlap/2
+
+    local va, vb = a.vx*nx+a.vy*ny, b.vx*nx+b.vy*ny       -- 2) rebotar
+    local diff = vb - va
+    if diff < 0 then                                      -- solo si se acercan
+        a.vx, a.vy = a.vx + diff*nx, a.vy + diff*ny
+        b.vx, b.vy = b.vx - diff*nx, b.vy - diff*ny
+    end
+end`,
+mainLoad:
+`function love.load()
+    W, H = love.graphics.getDimensions()
+    love.graphics.setBackgroundColor(0.09, 0.11, 0.17)
+    fontBig, fontSmall = love.graphics.newFont(18), love.graphics.newFont(14)
+
+    world = {}
+    local tipos = { "circle", "rectangle", "triangle" }
+    for _ = 1, 9 do
+        spawn(tipos[love.math.random(3)],
+              love.math.random(60, W-60), love.math.random(60, H-60))
+    end
+end`,
+mainUpdateMove:
+`for _, e in ipairs(world) do
+    e:update(dt, W, H)          -- mover + rebotar en paredes
+end`,
+mainUpdatePairs:
+`for i = 1, #world do
+    for j = i+1, #world do      -- cada par UNA vez (j empieza en i+1)
+        local a, b = world[i], world[j]
+        if a:overlaps(b) then           -- broad phase
+            a:flash(); b:flash()
+            resolver(a, b)              -- separar + rebotar
+            collisionCount = collisionCount + 1
+        end
+    end
+end`,
+mainUpdatePick:
+`local mx, my = love.mouse.getPosition()
+for _, e in ipairs(world) do e.hovered = false end
+for i = #world, 1, -1 do        -- de la de más arriba a la de más abajo
+    if world[i]:contains(mx, my) then
+        world[i].hovered = true
+        break                   -- solo la primera que toque
+    end
+end`,
+mainDraw:
+`function love.draw()
+    if showBounds then                       -- tecla G: ver el broad phase
+        love.graphics.setColor(1,1,1,0.15)
+        for _, e in ipairs(world) do
+            love.graphics.circle("line", e.x, e.y, e.shape:boundingRadius())
+        end
+    end
+    for _, e in ipairs(world) do e:draw() end   -- un solo bucle: polimorfismo
+    drawHUD()
+end`,
+mainInput:
+`function love.keypressed(key)
+    local mx, my = love.mouse.getPosition()
+    if     key == "1" then spawn("circle",    mx, my)
+    elseif key == "2" then spawn("rectangle", mx, my)
+    elseif key == "3" then spawn("triangle",  mx, my)
+    elseif key == "space" then paused = not paused
+    elseif key == "g" then showBounds = not showBounds
+    elseif key == "c" then world = {}; collisionCount = 0
+    elseif key == "escape" then love.event.quit() end
+end
+
+function love.mousepressed(mx, my, button)
+    if button == 1 then                     -- borrar la figura bajo el cursor
+        for i = #world, 1, -1 do
+            if world[i]:contains(mx, my) then table.remove(world, i); break end
+        end
+    end
+end`
+};
+
+// ---------- resaltador de Lua ----------
+function highlightLua(src){
+  let t = src.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const RE = /(--[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b\d+\.?\d*\b)|(\b(?:local|function|end|if|then|else|elseif|for|while|do|return|and|or|not|nil|true|false|in|repeat|until|break|require|self)\b)/g;
+  return t.replace(RE, (m,c,s,n,k)=>{
+    if(c) return '<span class="c">'+c+'</span>';
+    if(s) return '<span class="s">'+s+'</span>';
+    if(n) return '<span class="n">'+n+'</span>';
+    if(k) return '<span class="k">'+k+'</span>';
+    return m;
+  });
+}
+document.querySelectorAll('[data-code]').forEach(el=>{
+  const key = el.getAttribute('data-code');
+  if(CODE[key]!==undefined) el.innerHTML = highlightLua(CODE[key]);
+});
+
+// ---------- barra de progreso ----------
+const bar = document.getElementById('bar');
+addEventListener('scroll', ()=>{
+  const h = document.documentElement;
+  const p = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+  bar.style.width = (p*100)+'%';
+});
+
+// ---------- scrollspy ----------
+const links = [...document.querySelectorAll('#nav a')];
+const map = {};
+links.forEach(a=> map[a.getAttribute('href').slice(1)] = a);
+const obs = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('on'));
+      const a = map[e.target.id];
+      if(a){ a.classList.add('on'); }
+    }
+  });
+}, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+document.querySelectorAll('section[id]').forEach(s=>obs.observe(s));
+
+// ---------- menú móvil ----------
+const side = document.getElementById('side');
+document.getElementById('tocToggle').addEventListener('click', ()=>side.classList.toggle('open'));
+document.querySelectorAll('#nav a').forEach(a=>a.addEventListener('click', ()=>side.classList.remove('open')));
+</script>
+</body>
+</html>
